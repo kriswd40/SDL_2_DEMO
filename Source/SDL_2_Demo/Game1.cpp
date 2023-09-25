@@ -3,7 +3,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string>
-#include "LTexture.cpp"
+#include "LTexture.h"
+#include "TextureHelper.h"
 
 //Screen dimension constants
 const int SCREEN_WIDTH = 1280;
@@ -11,7 +12,8 @@ const int SCREEN_HEIGHT = 720;
 
 // Method definitions.
 bool init();
-bool loadMedia();
+//bool loadMedia();
+bool loadMediaOriginal();
 void close();
 void draw();
 void update();
@@ -26,7 +28,10 @@ SDL_Renderer* gRenderer = NULL;
 const int WALKING_ANIMATION_FRAMES = 4;
 SDL_Rect gSpriteClips[WALKING_ANIMATION_FRAMES];
 LTexture gSpriteSheetTexture;
+LTexture gSpriteSheetTextureUpsideDown;
 int frame = 0;
+
+TextureHelper textureHelper;
 
 //Starts up SDL and creates window
 bool init()
@@ -42,6 +47,8 @@ bool init()
 	}
 	else
 	{
+		//textureHelper = new TextureHelper();
+
 		//Set texture filtering to linear
 		if (!SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "1"))
 		{
@@ -59,6 +66,7 @@ bool init()
 		{
 			//Create vsynced renderer for window
 			gRenderer = SDL_CreateRenderer(gWindow, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+
 			if (gRenderer == NULL)
 			{
 				printf("Renderer could not be created! SDL Error: %s\n", SDL_GetError());
@@ -71,6 +79,7 @@ bool init()
 
 				//Initialize PNG loading
 				int imgFlags = IMG_INIT_PNG;
+
 				if (!(IMG_Init(imgFlags) & imgFlags))
 				{
 					printf("SDL_image could not initialize! SDL_image Error: %s\n", IMG_GetError());
@@ -83,8 +92,111 @@ bool init()
 	return success;
 }
 
-//Loads media
-bool loadMedia()
+//Frees media and shuts down SDL
+void close()
+{
+	//Free loaded images
+	gSpriteSheetTexture.free();
+	gSpriteSheetTextureUpsideDown.free();
+
+	//Destroy window	
+	SDL_DestroyRenderer(gRenderer);
+	SDL_DestroyWindow(gWindow);
+	gWindow = NULL;
+	gRenderer = NULL;
+
+	//Quit SDL subsystems
+	IMG_Quit();
+	SDL_Quit();
+}
+
+int main(int argc, char* args[])
+{
+	//Start up SDL and create window
+	if (!init())
+	{
+		printf("Failed to initialize!\n");
+	}
+	else
+	{
+		//Load media
+
+		// Load media via the new method.
+		gSpriteSheetTextureUpsideDown = textureHelper.GetTexture(gRenderer);
+		//textureHelper.LoadSpriteClips(gSpriteClips);
+
+		if (!loadMediaOriginal())
+		{
+			printf("Failed to load media!\n");
+		}
+		else
+		{
+			//Main loop flag
+			bool quit = false;
+
+			//Event handler
+			SDL_Event e;
+
+			//Current animation frame
+			frame = 0;
+
+			//While application is running
+			while (!quit)
+			{
+				//Handle events on queue
+				while (SDL_PollEvent(&e) != 0)
+				{
+					//User requests quit
+					if (e.type == SDL_QUIT)
+					{
+						quit = true;
+					}
+				}
+
+				draw();
+				update();
+			}
+		}
+	}
+
+	//Free resources and close SDL
+	close();
+
+	return 0;
+}
+
+void draw()
+{
+	//Clear screen
+	SDL_SetRenderDrawColor(gRenderer, 0xFF, 0xFF, 0xFF, 0xFF);
+	SDL_RenderClear(gRenderer);
+
+	//Render current frame
+	SDL_Rect* currentClip = &gSpriteClips[frame / 4];
+	gSpriteSheetTexture.render((SCREEN_WIDTH - currentClip->w) / 2, (SCREEN_HEIGHT - currentClip->h) / 2, gRenderer, currentClip);
+
+	// TODO - Try rendering this texture by itself to see if that draws? Doesn't seem to work :(
+	gSpriteSheetTextureUpsideDown.render(0, 0, gRenderer, NULL);
+	//gSpriteSheetTextureUpsideDown.render((SCREEN_WIDTH - currentClip->w) / 2, (SCREEN_HEIGHT - currentClip->h) / 2, gRenderer, currentClip);
+
+	//Update screen
+	SDL_RenderPresent(gRenderer);
+}
+
+void update()
+{
+	//Go to next frame
+	++frame;
+
+	//Cycle animation
+	if (frame / 4 >= WALKING_ANIMATION_FRAMES)
+	{
+		frame = 0;
+	}
+}
+
+// Original method from code I copied that loads media. Media loaded this way correctly draws. 
+bool loadMediaOriginal()
 {
 	//Loading success flag
 	bool success = true;
@@ -120,119 +232,4 @@ bool loadMedia()
 	}
 
 	return success;
-}
-
-//Frees media and shuts down SDL
-void close()
-{
-	//Free loaded images
-	gSpriteSheetTexture.free();
-
-	//Destroy window	
-	SDL_DestroyRenderer(gRenderer);
-	SDL_DestroyWindow(gWindow);
-	gWindow = NULL;
-	gRenderer = NULL;
-
-	//Quit SDL subsystems
-	IMG_Quit();
-	SDL_Quit();
-}
-
-int main(int argc, char* args[])
-{
-	//Start up SDL and create window
-	if (!init())
-	{
-		printf("Failed to initialize!\n");
-	}
-	else
-	{
-		//Load media
-		if (!loadMedia())
-		{
-			printf("Failed to load media!\n");
-		}
-		else
-		{
-			//Main loop flag
-			bool quit = false;
-
-			//Event handler
-			SDL_Event e;
-
-			//Current animation frame
-			//int frame = 0;
-			frame = 0;
-
-			//While application is running
-			while (!quit)
-			{
-				//Handle events on queue
-				while (SDL_PollEvent(&e) != 0)
-				{
-					//User requests quit
-					if (e.type == SDL_QUIT)
-					{
-						quit = true;
-					}
-				}
-
-				////Clear screen
-				//SDL_SetRenderDrawColor(gRenderer, 0xFF, 0xFF, 0xFF, 0xFF);
-				//SDL_RenderClear(gRenderer);
-
-				////Render current frame
-				//SDL_Rect* currentClip = &gSpriteClips[frame / 4];
-				//gSpriteSheetTexture.render((SCREEN_WIDTH - currentClip->w) / 2, (SCREEN_HEIGHT - currentClip->h) / 2, gRenderer, currentClip);
-
-				////Update screen
-				//SDL_RenderPresent(gRenderer);
-
-				draw();
-
-				////Go to next frame
-				//++frame;
-
-				////Cycle animation
-				//if (frame / 4 >= WALKING_ANIMATION_FRAMES)
-				//{
-				//	frame = 0;
-				//}
-
-				update();
-			}
-		}
-	}
-
-	//Free resources and close SDL
-	close();
-
-	return 0;
-}
-
-void draw()
-{
-	//Clear screen
-	SDL_SetRenderDrawColor(gRenderer, 0xFF, 0xFF, 0xFF, 0xFF);
-	SDL_RenderClear(gRenderer);
-
-	//Render current frame
-	SDL_Rect* currentClip = &gSpriteClips[frame / 4];
-	gSpriteSheetTexture.render((SCREEN_WIDTH - currentClip->w) / 2, (SCREEN_HEIGHT - currentClip->h) / 2, gRenderer, currentClip);
-
-	//Update screen
-	SDL_RenderPresent(gRenderer);
-}
-
-void update()
-{
-	//Go to next frame
-	++frame;
-
-	//Cycle animation
-	if (frame / 4 >= WALKING_ANIMATION_FRAMES)
-	{
-		frame = 0;
-	}
 }

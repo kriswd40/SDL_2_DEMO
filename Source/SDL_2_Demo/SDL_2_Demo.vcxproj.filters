@@ -16,6 +16,9 @@
     <Filter Include="Source Files\Core">
       <UniqueIdentifier>{8ee62735-0819-441c-a75e-a5573ba0d206}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\Helpers">
+      <UniqueIdentifier>{ff754b90-59d8-464e-aa20-041be363a17e}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Game1.cpp">
@@ -24,5 +27,16 @@
     <ClCompile Include="LTexture.cpp">
       <Filter>Source Files\Core</Filter>
     </ClCompile>
+    <ClCompile Include="TextureHelper.cpp">
+      <Filter>Source Files\Helpers</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="LTexture.h">
+      <Filter>Source Files\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="TextureHelper.h">
+      <Filter>Source Files\Helpers</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
